@@ -8,12 +8,16 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private float moveSpeed;
     [SerializeField] private Camera cam;
     [SerializeField] private float pushOut;
+    [SerializeField] private float jumpStrength;
+    [SerializeField] private float runningFactor;
+    private bool running;
     private Rigidbody rb;
     private bool colliding, onGround;
     private Vector2 mouseInput;
     private Vector2 movementInput;
     void Start()
     {
+        running = false;
         mouseInput.x = mouseInput.y = 0f;
         movementInput.x = movementInput.y = 0f;
         rb = GetComponent<Rigidbody>();
@@ -32,27 +36,22 @@ public class PlayerMovement : MonoBehaviour
         if (mouseInput.x > 180f) mouseInput.x -= 360f;
         if (mouseInput.x < -180f) mouseInput.x += 360f;
 
-        //Handling WASD Input
-        movementInput.y = moveSpeed * Input.GetAxis("Vertical");
+        //Handling WASD and shift Input
+        running = Input.GetKey(KeyCode.LeftShift);
+        movementInput.y = moveSpeed * (running && Input.GetAxis("Vertical") > 0 ? runningFactor : 1) * Input.GetAxis("Vertical");
         movementInput.x = moveSpeed * Input.GetAxis("Horizontal");
 
-        //Jumping
-        if (Input.GetKeyDown(KeyCode.Space) && onGround)
-        {
-            rb.AddForce(0f, 200f, 0f);
-        }
-
-
-        //Output
+        
+        //Horizontal Movement
         transform.rotation = Quaternion.Euler(0f, mouseInput.x, 0f);
         cam.transform.rotation = Quaternion.Euler(-mouseInput.y, mouseInput.x, 0f);
-        rb.AddForce(transform.forward.x * movementInput.y, 0f, transform.forward.z * movementInput.y);
-        rb.AddForce(transform.forward.z * movementInput.x, 0f, -transform.forward.x * movementInput.x);
-        if (rb.velocity.magnitude > 0.5)
+        rb.velocity = new Vector3(transform.forward.x * movementInput.y, rb.velocity.y, transform.forward.z * movementInput.y);
+        rb.velocity += new Vector3(transform.forward.z * movementInput.x, 0f, -transform.forward.x * movementInput.x);
+
+        //Vertical Movement
+        if (onGround)
         {
-            rb.velocity.Normalize();
-            rb.velocity *= 0.5f;
-            
+            rb.AddForce(new Vector3(0f, Input.GetAxisRaw("Jump") * jumpStrength, 0f));
         }
     }
 
